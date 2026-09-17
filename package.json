@@ -1,10 +1,14 @@
 {
+  "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
   "name": "hyprland-display-arranger",
   "title": "Hyprland Display Arranger",
   "description": "Arrange Hyprland displays from the launcher. Reorder, position, and toggle displays; layouts persist across reboots.",
   "categories": [
     "System",
     "Developer Tools"
+  ],
+  "platforms": [
+    "Linux"
   ],
   "license": "MIT",
   "author": "kaareloun",
@@ -18,7 +22,12 @@
       "subtitle": "Hyprland external displays",
       "description": "Reorder, position, enable, and disable displays. Changes apply instantly and persist to a managed Lua file.",
       "mode": "view",
-      "keywords": ["monitor", "monitors", "screen", "screens"]
+      "keywords": [
+        "monitor",
+        "monitors",
+        "screen",
+        "screens"
+      ]
     }
   ],
   "preferences": [
@@ -34,12 +43,14 @@
   "scripts": {
     "build": "vici build",
     "dev": "vici develop",
+    "format": "biome format --write src",
     "lint": "vici lint"
   },
   "dependencies": {
     "@vicinae/api": "^0.28.2"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.3.2",
     "@types/node": "^22.7.0",
     "@types/react": "^19.1.17",
     "typescript": "^5.6.0"
