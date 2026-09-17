@@ -37,7 +37,7 @@ function managedFile(): string {
 }
 
 function detailMarkdown(m: HyprMonitor, position: string, legacy: boolean): string {
-  const warn = legacy ? "\n> ⚠️ Old hyprlang config. Runtime moves still apply, **Save layout** writes Lua.\n" : "";
+  const warn = legacy ? "\n> ⚠️ Old hyprlang config. Runtime moves still apply, but persistence needs `hyprland.lua`.\n" : "";
   return `# ${m.name}\n\n**Position** \`${position}\` · **Mode** \`${modeFor(m)}\` · **Scale** \`${m.scale}\`${warn}`;
 }
 
