@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Action, ActionPanel, Alert, Color, Form, Icon, List, Toast, confirmAlert, getPreferenceValues, showToast, useNavigation } from "@vicinae/api";
 import {
   SIDECAR_DEFAULT,
@@ -101,11 +101,17 @@ export default function Command() {
   const [config, setConfig] = useState<ConfigState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // NOTE: background poll skips ticks while an action is in flight.
+  const busyRef = useRef(false);
+  busyRef.current = busy;
 
-  const load = useCallback(async (announceLegacy: boolean) => {
-    setError(null);
+  const load = useCallback(async (announceLegacy: boolean, quiet = false) => {
+    // NOTE: quiet ticks keep stale data on failure instead of flipping the
+    // whole view to the error screen for a transient hyprctl hiccup.
+    if (quiet && busyRef.current) return;
     try {
       const [monitors, cfg] = await Promise.all([getAllMonitors(), getConfigState()]);
+      setError(null);
       setAll(monitors);
       setConfig(cfg);
       setOrder((prev) => {
@@ -123,12 +129,20 @@ export default function Command() {
         });
       }
     } catch (e) {
+      if (quiet) return;
       setError(e instanceof Error ? e.message : String(e));
     }
   }, []);
 
   useEffect(() => {
     void load(true);
+  }, [load]);
+
+  // NOTE: live refresh — closing the lid (or unplugging) moves the monitor
+  // to the Disabled section within ~2s, no manual Reload needed.
+  useEffect(() => {
+    const t = setInterval(() => void load(false, true), 2000);
+    return () => clearInterval(t);
   }, [load]);
 
   const byName = useMemo(() => new Map((all ?? []).map((m) => [m.name, m])), [all]);

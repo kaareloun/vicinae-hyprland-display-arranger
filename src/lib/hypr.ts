@@ -254,7 +254,10 @@ export function modeFor(m: HyprMonitor): string {
 }
 
 export function evalForPlacement(m: HyprMonitor, x: number, y: number): string {
-  return `hl.monitor({ output = ${luaStr(m.name)}, mode = ${luaStr(modeFor(m))}, position = ${luaStr(`${x}x${y}`)}, scale = ${m.scale} })`;
+  // NOTE: `disabled = false` must be explicit. Hyprland merges hl.monitor
+  // tables per output, so a stale `disabled = true` survives an eval that
+  // merely omits the field — the monitor would stay black despite "ok".
+  return `hl.monitor({ output = ${luaStr(m.name)}, mode = ${luaStr(modeFor(m))}, position = ${luaStr(`${x}x${y}`)}, scale = ${m.scale}, disabled = false })`;
 }
 
 export function evalForDisable(m: HyprMonitor): string {
@@ -354,7 +357,7 @@ export async function setEnabled(m: HyprMonitor, enabled: boolean, provider: Con
     }
     await run("hyprctl", [
       "eval",
-      `hl.monitor({ output = ${luaStr(m.name)}, mode = ${luaStr(modeFor(m))}, position = "auto", scale = ${m.scale} })`,
+      `hl.monitor({ output = ${luaStr(m.name)}, mode = ${luaStr(modeFor(m))}, position = "auto", scale = ${m.scale}, disabled = false })`,
     ]);
     return;
   }
@@ -415,6 +418,10 @@ export async function persistLiveLayout(sidecarFile = SIDECAR_DEFAULT): Promise<
     throw new Error("hyprland.lua not found");
   });
   const live = await getAllMonitors();
+  // NOTE: persist the true live state, including a disabled internal panel.
+  // Hyprland auto-reloads this file on every write (inotify), so writing
+  // anything but the truth (e.g. force-enabling eDP-1 here) would instantly
+  // revert the runtime state the user just asked for.
   const enabled = orderLeftToRight(live.filter((m) => !m.disabled));
   const disabled = live.filter((m) => m.disabled);
 
@@ -431,8 +438,28 @@ export async function persistLiveLayout(sidecarFile = SIDECAR_DEFAULT): Promise<
   const hasRequire = luaNext.split("\n").some((l) => l.trim() === need);
   const imported = importStaticRules(luaNext);
   const liveEntries = [...tileHorizontally(enabled).map(liveEntry), ...disabled.map(disabledEntry)];
-  const preserved = imported.rules.filter((r) => !live.some((m) => monitorMatchesOutput(m, r.output)));
-  const entries = [...liveEntries, ...preserved];
+  const entries = [...liveEntries];
+  const seenOutputs = new Set(entries.map((e) => e.output));
+  // FIX: remember other locations. The sidecar used to be rebuilt from current
+  // live monitors + static hyprland.lua rules only, so persisting at work
+  // dropped the home monitor's rule (and vice versa). Merge previous sidecar
+  // entries for outputs that are absent now; sidecar wins over static because
+  // it holds the freshest live-derived positions.
+  const sidecarPrev = await fs.readFile(join(dir, sidecarFile), "utf8").catch(() => null);
+  if (sidecarPrev) {
+    for (const r of importStaticRules(sidecarPrev).rules) {
+      if (seenOutputs.has(r.output)) continue;
+      if (live.some((m) => monitorMatchesOutput(m, r.output))) continue;
+      entries.push({ output: r.output, text: r.text });
+      seenOutputs.add(r.output);
+    }
+  }
+  for (const r of imported.rules) {
+    if (seenOutputs.has(r.output)) continue;
+    if (live.some((m) => monitorMatchesOutput(m, r.output))) continue;
+    entries.push({ output: r.output, text: r.text });
+    seenOutputs.add(r.output);
+  }
   if (!entries.some((e) => e.output === "")) {
     entries.push({ output: "", text: `hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })` });
   }
