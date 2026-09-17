@@ -338,7 +338,7 @@ export default function Command() {
               title={m.name}
               subtitle={m.description || "disabled"}
               icon={{ source: Icon.EyeDisabled, tintColor: Color.SecondaryText }}
-              detail={<List.Item.Detail markdown={`# ${m.name}\n\nDisabled. Enable to append it at the end of the strip, then reorder with ⌃H / ⌃L.`} />}
+              detail={<List.Item.Detail markdown={`# ${m.name}\n\nDisabled. Enable to append it at the end of the strip.`} />}
               actions={
                 <ActionPanel>
                   <Action
