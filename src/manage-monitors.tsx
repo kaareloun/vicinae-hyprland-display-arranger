@@ -198,7 +198,7 @@ export default function Command() {
   }
 
   return (
-    <List isLoading={busy} isShowingDetail searchBarPlaceholder="Monitors — ⌃H/⌃L to reorder">
+    <List isLoading={busy} isShowingDetail searchBarPlaceholder="Monitors">
       {config.isLegacy ? (
         <List.Section title="Upgrade notice">
           <List.Item

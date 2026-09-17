@@ -2,6 +2,8 @@
 
 Arrange Hyprland monitors from the Vicinae launcher. Reorder, position, enable, and persist external displays without hand-editing your config.
 
+![Manage Monitors](assets/screenshot.png)
+
 ## Features
 
 - Reorder monitors with `Ctrl+H` / `Ctrl+L`, applied instantly
