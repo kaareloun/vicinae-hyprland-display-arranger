@@ -36,15 +36,20 @@ function managedFile(): string {
   return prefs()["managed-file"] || SIDECAR_DEFAULT;
 }
 
-function tileIcon(bg: string, off: boolean): string {
-  const slash = off ? `<line x1="15" y1="49" x2="49" y2="15" stroke="#fff" stroke-width="5" stroke-linecap="round"/>` : "";
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${bg}"/><rect x="12" y="15" width="40" height="27" rx="4" fill="none" stroke="#fff" stroke-width="4"/><line x1="32" y1="42" x2="32" y2="51" stroke="#fff" stroke-width="4" stroke-linecap="round"/><line x1="23" y1="51" x2="41" y2="51" stroke="#fff" stroke-width="4" stroke-linecap="round"/>${slash}</svg>`;
+function tileIcon(bg: string, badge: "none" | "star" | "slash"): string {
+  const star =
+    badge === "star"
+      ? `<polygon points="50,6 52.2,11.9 58.6,12.2 53.6,16.2 55.3,22.3 50,18.8 44.7,22.3 46.4,16.2 41.4,12.2 47.8,11.9" fill="#FACC15"/>`
+      : "";
+  const slash =
+    badge === "slash" ? `<line x1="15" y1="49" x2="49" y2="15" stroke="#fff" stroke-width="5" stroke-linecap="round"/>` : "";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${bg}"/><rect x="12" y="15" width="40" height="27" rx="4" fill="none" stroke="#fff" stroke-width="4"/><line x1="32" y1="42" x2="32" y2="51" stroke="#fff" stroke-width="4" stroke-linecap="round"/><line x1="23" y1="51" x2="41" y2="51" stroke="#fff" stroke-width="4" stroke-linecap="round"/>${star}${slash}</svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-const ICON_ACTIVE = tileIcon("#16A34A", false);
-const ICON_NORMAL = tileIcon("#2563EB", false);
-const ICON_DISABLED = tileIcon("#71717A", true);
+const ICON_ACTIVE = tileIcon("#64748B", "star");
+const ICON_NORMAL = tileIcon("#64748B", "none");
+const ICON_DISABLED = tileIcon("#52525B", "slash");
 
 function mergeOrder(prev: string[], monitors: HyprMonitor[]): string[] {
   const enabled = monitors.filter((m) => !m.disabled).map((m) => m.name);
@@ -303,6 +308,7 @@ export default function Command() {
                     title="Disable Display"
                     icon={Icon.EyeDisabled}
                     style={Action.Style.Destructive}
+                    shortcut={{ modifiers: ["ctrl"], key: "d" }}
                     onAction={() => {
                       if (enabled.length <= 1) {
                         void showToast({ style: Toast.Style.Failure, title: "Cannot disable the last active display" });
@@ -375,6 +381,7 @@ export default function Command() {
                   <Action
                     title="Enable Display"
                     icon={Icon.Eye}
+                    shortcut={{ modifiers: ["ctrl"], key: "d" }}
                     onAction={() =>
                       void guarded(async () => {
                         await setEnabled(m, true, config.provider);
