@@ -36,6 +36,24 @@ function managedFile(): string {
   return prefs()["managed-file"] || SIDECAR_DEFAULT;
 }
 
+function tileIcon(bg: string, off: boolean): string {
+  const slash = off ? `<line x1="15" y1="49" x2="49" y2="15" stroke="#fff" stroke-width="5" stroke-linecap="round"/>` : "";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${bg}"/><rect x="12" y="15" width="40" height="27" rx="4" fill="none" stroke="#fff" stroke-width="4"/><line x1="32" y1="42" x2="32" y2="51" stroke="#fff" stroke-width="4" stroke-linecap="round"/><line x1="23" y1="51" x2="41" y2="51" stroke="#fff" stroke-width="4" stroke-linecap="round"/>${slash}</svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+const ICON_ACTIVE = tileIcon("#16A34A", false);
+const ICON_NORMAL = tileIcon("#2563EB", false);
+const ICON_DISABLED = tileIcon("#71717A", true);
+
+function mergeOrder(prev: string[], monitors: HyprMonitor[]): string[] {
+  const enabled = monitors.filter((m) => !m.disabled).map((m) => m.name);
+  const kept = prev.filter((n) => enabled.includes(n));
+  const fresh = enabled.filter((n) => !kept.includes(n));
+  if (kept.length > 0 || fresh.length !== enabled.length) return [...kept, ...fresh];
+  return orderLeftToRight(monitors.filter((m) => !m.disabled)).map((m) => m.name);
+}
+
 function detailMarkdown(m: HyprMonitor, position: string, legacy: boolean): string {
   const warn = legacy ? "\n> ⚠️ Old hyprlang config. Runtime moves still apply, but persistence needs `hyprland.lua`.\n" : "";
   return `# ${m.name}\n\n**Position** \`${position}\` · **Mode** \`${modeFor(m)}\` · **Scale** \`${m.scale}\`${warn}`;
@@ -107,20 +125,13 @@ export default function Command() {
     busyRef.current = busy;
   }, [busy]);
 
-  const load = useCallback(async (announceLegacy: boolean, quiet = false) => {
-    if (quiet && busyRef.current) return;
+  const load = useCallback(async (announceLegacy: boolean) => {
     try {
       const [monitors, cfg] = await Promise.all([getAllMonitors(), getConfigState()]);
       setError(null);
       setAll(monitors);
       setConfig(cfg);
-      setOrder((prev) => {
-        const enabled = monitors.filter((m) => !m.disabled).map((m) => m.name);
-        const kept = prev.filter((n) => enabled.includes(n));
-        const fresh = enabled.filter((n) => !kept.includes(n));
-        if (kept.length > 0 || fresh.length !== enabled.length) return [...kept, ...fresh];
-        return orderLeftToRight(monitors.filter((m) => !m.disabled)).map((m) => m.name);
-      });
+      setOrder((prev) => mergeOrder(prev, monitors));
       if (announceLegacy && cfg.isLegacy) {
         await showToast({
           style: Toast.Style.Failure,
@@ -129,16 +140,26 @@ export default function Command() {
         });
       }
     } catch (e) {
-      if (quiet) return;
       setError(e instanceof Error ? e.message : String(e));
+    }
+  }, []);
+
+  const refreshMonitors = useCallback(async () => {
+    if (busyRef.current) return;
+    try {
+      const monitors = await getAllMonitors();
+      setAll(monitors);
+      setOrder((prev) => mergeOrder(prev, monitors));
+    } catch {
+      return;
     }
   }, []);
 
   useEffect(() => {
     void load(true);
-    const t = setInterval(() => void load(false, true), 2000);
+    const t = setInterval(() => void refreshMonitors(), 2000);
     return () => clearInterval(t);
-  }, [load]);
+  }, [load, refreshMonitors]);
 
   const byName = useMemo(() => new Map((all ?? []).map((m) => [m.name, m])), [all]);
   const enabled = useMemo(() => order.map((n) => byName.get(n)).filter((m): m is HyprMonitor => Boolean(m)), [order, byName]);
@@ -184,7 +205,10 @@ export default function Command() {
       const nextPlacements = tileHorizontally(ordered);
       void guarded(async () => {
         await applyAndPersist(nextPlacements, `Moved ${name} ${dir === -1 ? "left" : "right"}`);
-        setOrder(next);
+        setOrder((prev) => {
+          const wanted = new Set(next);
+          return [...next, ...prev.filter((n) => !wanted.has(n))];
+        });
       });
     },
     [order, byName, config, guarded, applyAndPersist],
@@ -238,7 +262,7 @@ export default function Command() {
               key={m.name}
               title={m.name}
               subtitle={`${modeFor(m)} @ ${position}`}
-              icon={{ source: m.focused ? Icon.Star : Icon.Desktop, tintColor: m.focused ? Color.Yellow : Color.Blue }}
+              icon={m.focused ? ICON_ACTIVE : ICON_NORMAL}
               accessories={[
                 { text: `scale ${m.scale}` },
                 { text: `${scaledWidth(m)}px wide` },
@@ -263,19 +287,35 @@ export default function Command() {
               }
               actions={
                 <ActionPanel>
-                  <ActionPanel.Section title="Arrange">
-                    <Action
-                      title="Move Left"
-                      icon={Icon.ArrowLeft}
-                      shortcut={{ modifiers: ["ctrl"], key: "arrowLeft" }}
-                      onAction={() => move(m.name, -1)}
-                    />
-                    <Action
-                      title="Move Right"
-                      icon={Icon.ArrowRight}
-                      shortcut={{ modifiers: ["ctrl"], key: "arrowRight" }}
-                      onAction={() => move(m.name, 1)}
-                    />
+                  <Action
+                    title="Move Left"
+                    icon={Icon.ArrowLeft}
+                    shortcut={{ modifiers: ["ctrl"], key: "arrowLeft" }}
+                    onAction={() => move(m.name, -1)}
+                  />
+                  <Action
+                    title="Move Right"
+                    icon={Icon.ArrowRight}
+                    shortcut={{ modifiers: ["ctrl"], key: "arrowRight" }}
+                    onAction={() => move(m.name, 1)}
+                  />
+                  <Action
+                    title="Disable Display"
+                    icon={Icon.EyeDisabled}
+                    style={Action.Style.Destructive}
+                    onAction={() => {
+                      if (enabled.length <= 1) {
+                        void showToast({ style: Toast.Style.Failure, title: "Cannot disable the last active display" });
+                        return;
+                      }
+                      void guarded(async () => {
+                        await setEnabled(m, false, config.provider);
+                        await persistLiveLayout(managedFile());
+                        await showToast({ style: Toast.Style.Success, title: `Disabled ${m.name}` });
+                      });
+                    }}
+                  />
+                  <ActionPanel.Submenu title="Actions" icon={Icon.Ellipsis}>
                     <Action.Push
                       title="Edit Position…"
                       icon={Icon.Pencil}
@@ -291,35 +331,17 @@ export default function Command() {
                         />
                       }
                     />
-                  </ActionPanel.Section>
-                  <ActionPanel.Section title="Display">
-                    <Action
-                      title="Disable Display"
-                      icon={Icon.EyeDisabled}
-                      style="destructive"
-                      onAction={() => {
-                        if (enabled.length <= 1) {
-                          void showToast({ style: Toast.Style.Failure, title: "Cannot disable the last active display" });
-                          return;
-                        }
-                        void guarded(async () => {
-                          await setEnabled(m, false, config.provider);
-                          await persistLiveLayout(managedFile());
-                          await showToast({ style: Toast.Style.Success, title: `Disabled ${m.name}` });
-                        });
-                      }}
-                    />
                     <Action.CopyToClipboard title="Copy Position" content={position} />
                     <Action.ShowInFinder title="Reveal Hypr Config Folder" path={config.hyprDir} />
                     <Action
                       title="Remove Extension Config"
                       icon={Icon.Trash}
-                      style="destructive"
+                      style={Action.Style.Destructive}
                       onAction={() => {
                         void (async () => {
                           const ok = await confirmAlert({
                             title: "Remove extension config?",
-                            message: `Deletes the ${managedFile()} sidecar, its require lines, and extension backups. Your static rules take over again on next reload.`,
+                            message: `Deletes the ${managedFile()} sidecar and its require lines. Your static rules take over again on next reload.`,
                             primaryAction: { title: "Remove", style: Alert.ActionStyle.Destructive },
                           });
                           if (!ok) return;
@@ -331,7 +353,7 @@ export default function Command() {
                       }}
                     />
                     <Action title="Reload" icon={Icon.ArrowClockwise} shortcut={{ modifiers: ["cmd"], key: "r" }} onAction={() => void load(false)} />
-                  </ActionPanel.Section>
+                  </ActionPanel.Submenu>
                 </ActionPanel>
               }
             />
@@ -346,7 +368,7 @@ export default function Command() {
               key={m.name}
               title={m.name}
               subtitle={m.description || "disabled"}
-              icon={{ source: Icon.EyeDisabled, tintColor: Color.SecondaryText }}
+              icon={ICON_DISABLED}
               detail={<List.Item.Detail markdown={`# ${m.name}\n\nDisabled. Enable to append it at the end of the strip, then reorder with Ctrl+Left / Ctrl+Right.`} />}
               actions={
                 <ActionPanel>

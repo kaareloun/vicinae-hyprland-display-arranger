@@ -27,8 +27,6 @@ export type ConfigProvider = "lua" | "hyprlang" | "unknown";
 
 export interface ConfigState {
   provider: ConfigProvider;
-  luaPath: string;
-  confPath: string;
   hyprDir: string;
   isLegacy: boolean;
 }
@@ -56,7 +54,7 @@ export async function getAllMonitors(): Promise<HyprMonitor[]> {
   return JSON.parse(out) as HyprMonitor[];
 }
 
-export async function getProvider(): Promise<ConfigProvider> {
+async function getProvider(): Promise<ConfigProvider> {
   try {
     const out = await run("hyprctl", ["status", "-j"]);
     const parsed = JSON.parse(out) as { configProvider?: string };
@@ -73,7 +71,6 @@ export function hyprDir(): string {
 }
 
 export const TAKEOVER_COMMENT = "-- vicinae: managed display setup (extension-owned)";
-export const OFF_PREFIX = "-- vicinae-off: ";
 export const SIDECAR_DEFAULT = "displays-vicinae.lua";
 
 export function requireLineFor(fileName: string): string {
@@ -168,21 +165,6 @@ export function importStaticRules(source: string): { rules: ImportedRule[]; skip
   return { rules: [...byOutput].map(([output, ruleText]) => ({ output, text: ruleText })), skipped };
 }
 
-export function stripOwnMarkers(source: string): { text: string; stripped: number } {
-  let stripped = 0;
-  const text = source
-    .split("\n")
-    .map((l) => {
-      if (l.startsWith(OFF_PREFIX)) {
-        stripped++;
-        return l.slice(OFF_PREFIX.length);
-      }
-      return l;
-    })
-    .join("\n");
-  return { text, stripped };
-}
-
 export function monitorMatchesOutput(m: HyprMonitor, output: string): boolean {
   if (output === m.name) return true;
   if (m.description && output === `desc:${m.description}`) return true;
@@ -200,7 +182,7 @@ export async function getConfigState(): Promise<ConfigState> {
   ]);
   const hasLua = luaContent !== null;
   const isLegacy = provider === "hyprlang" || (provider !== "lua" && hasConf && !hasLua);
-  return { provider, luaPath, confPath, hyprDir: dir, isLegacy };
+  return { provider, hyprDir: dir, isLegacy };
 }
 
 export function scaledWidth(m: HyprMonitor): number {
@@ -263,7 +245,7 @@ export function legacyKeywordFor(m: HyprMonitor, x: number, y: number): string {
   return `monitor=${m.name},${modeFor(m)},${x}x${y},${m.scale}`;
 }
 
-export interface MoveStep {
+interface MoveStep {
   monitor: HyprMonitor;
   x: number;
   y: number;
@@ -410,13 +392,6 @@ export async function persistLiveLayout(sidecarFile = SIDECAR_DEFAULT): Promise<
 
   let luaNext = luaCurrent;
   let changedConfig = false;
-  let migrated = 0;
-  if (luaNext.includes(OFF_PREFIX)) {
-    const stripped = stripOwnMarkers(luaNext);
-    luaNext = stripped.text;
-    migrated = stripped.stripped;
-    changedConfig = migrated > 0;
-  }
   const need = requireLineFor(sidecarFile);
   const hasRequire = luaNext.split("\n").some((l) => l.trim() === need);
   const imported = importStaticRules(luaNext);
@@ -465,8 +440,6 @@ export async function persistLiveLayout(sidecarFile = SIDECAR_DEFAULT): Promise<
       }
       throw e;
     }
-  } else if (changedConfig) {
-    await fs.writeFile(luaPath, luaNext, "utf8");
   }
   return { sidecar, changedConfig, persisted: true };
 }
@@ -486,10 +459,6 @@ export async function removeExtensionConfig(sidecarFile = SIDECAR_DEFAULT): Prom
     await fs.writeFile(luaPath, kept.join("\n"), "utf8");
   }
   await fs.unlink(join(dir, sidecarFile)).catch(() => undefined);
-  const leftovers = (await fs.readdir(dir)).filter((f) => f.startsWith("hyprland.lua.vicinae-bak-"));
-  for (const f of leftovers) {
-    await fs.unlink(join(dir, f)).catch(() => undefined);
-  }
 }
 
 export function withRepositioned(placements: PlacedMonitor[], name: string, x: number, y: number): PlacedMonitor[] {

@@ -10,6 +10,7 @@ Arrange Hyprland displays from the Vicinae launcher. Reorder, position, enable, 
 - Exact X/Y positioning, per-display scale and mode info
 - Enable/disable displays (never the last active one)
 - Layouts persist across reboots via an owned sidecar file
+- Live refresh — lid close or unplug shows up within ~2 seconds, no manual reload
 - Stable `desc:` matching — identical panels keep their sides when the kernel renumbers outputs
 
 ## Requirements
