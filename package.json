@@ -20,7 +20,8 @@
       "title": "Arrange Displays",
       "subtitle": "Hyprland external displays",
       "description": "Reorder, position, enable, and disable displays. Changes apply instantly and persist to a managed Lua file.",
-      "mode": "view"
+      "mode": "view",
+      "keywords": ["monitor", "monitors", "screen", "screens"]
     }
   ],
   "preferences": [
