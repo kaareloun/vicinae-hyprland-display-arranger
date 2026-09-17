@@ -74,9 +74,9 @@ export function hyprDir(): string {
   return process.env.XDG_CONFIG_HOME ? join(process.env.XDG_CONFIG_HOME, "hypr") : join(homedir(), ".config", "hypr");
 }
 
-export const TAKEOVER_COMMENT = "-- vicinae: managed monitor setup (plugin-owned)";
+export const TAKEOVER_COMMENT = "-- vicinae: managed display setup (extension-owned)";
 export const OFF_PREFIX = "-- vicinae-off: ";
-export const SIDECAR_DEFAULT = "monitors-vicinae.lua";
+export const SIDECAR_DEFAULT = "displays-vicinae.lua";
 
 export function requireLineFor(fileName: string): string {
   return `require("${fileName.replace(/\.lua$/, "")}")`;
@@ -382,7 +382,7 @@ export function disabledEntry(m: HyprMonitor): SidecarEntry {
 }
 
 export function renderSidecar(entries: SidecarEntry[]): string {
-  const lines = ["-- Managed by vicinae hyprland-monitors. Do not edit by hand.", "-- Positions update on every change in Manage Monitors.", ""];
+  const lines = ["-- Managed by vicinae hyprland-display-arranger. Do not edit by hand.", "-- Positions update on every change in Arrange Displays.", ""];
   for (const e of entries) lines.push(e.text, "");
   return lines.join("\n");
 }
@@ -470,7 +470,7 @@ export async function persistLiveLayout(sidecarFile = SIDECAR_DEFAULT): Promise<
   return { sidecar, changedConfig, persisted: true, imported: imported.rules.length, skipped: imported.skipped, migrated };
 }
 
-export async function removePluginConfig(sidecarFile = SIDECAR_DEFAULT): Promise<void> {
+export async function removeExtensionConfig(sidecarFile = SIDECAR_DEFAULT): Promise<void> {
   const dir = hyprDir();
   const luaPath = join(dir, "hyprland.lua");
   const need = requireLineFor(sidecarFile);
