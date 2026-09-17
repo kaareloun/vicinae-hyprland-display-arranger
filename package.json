@@ -1,0 +1,46 @@
+{
+  "name": "hyprland-monitors",
+  "title": "Hyprland Monitors",
+  "description": "Arrange Hyprland monitors from the launcher. Reorder, position, and toggle displays; layouts persist across reboots.",
+  "categories": [
+    "System",
+    "Developer Tools"
+  ],
+  "license": "MIT",
+  "author": "kaarel",
+  "contributors": [],
+  "pastContributors": [],
+  "icon": "extension_icon.png",
+  "commands": [
+    {
+      "name": "manage-monitors",
+      "title": "Manage Monitors",
+      "subtitle": "Hyprland external displays",
+      "description": "Reorder, position, enable, and disable monitors. Changes apply instantly and persist to a managed Lua file.",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "managed-file",
+      "title": "Managed Lua file",
+      "description": "File the extension writes persistent monitor rules to (inside ~/.config/hypr).",
+      "required": false,
+      "type": "textfield",
+      "default": "monitors-vicinae.lua"
+    }
+  ],
+  "scripts": {
+    "build": "vici build",
+    "dev": "vici develop",
+    "lint": "vici lint"
+  },
+  "dependencies": {
+    "@vicinae/api": "^0.28.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "@types/react": "^19.1.17",
+    "typescript": "^5.6.0"
+  }
+}
