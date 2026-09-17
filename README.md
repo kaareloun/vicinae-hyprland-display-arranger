@@ -6,7 +6,7 @@ Arrange Hyprland displays from the Vicinae launcher. Reorder, position, enable, 
 
 ## Features
 
-- Reorder displays with `Ctrl+H` / `Ctrl+L`, applied instantly
+- Reorder displays with `Ctrl+Left` / `Ctrl+Right`, applied instantly
 - Exact X/Y positioning, per-display scale and mode info
 - Enable/disable displays (never the last active one)
 - Layouts persist across reboots via an owned sidecar file
