@@ -198,7 +198,7 @@ export default function Command() {
   }
 
   return (
-    <List isLoading={busy} isShowingDetail searchBarPlaceholder="Displays">
+    <List isLoading={busy} isShowingDetail searchBarPlaceholder="Displays — Ctrl+←/→ to reorder">
       {config.isLegacy ? (
         <List.Section title="Upgrade notice">
           <List.Item
@@ -258,13 +258,13 @@ export default function Command() {
                     <Action
                       title="Move Left"
                       icon={Icon.ArrowLeft}
-                      shortcut={{ modifiers: ["ctrl"], key: "h" }}
+                      shortcut={{ modifiers: ["ctrl"], key: "arrowLeft" }}
                       onAction={() => move(m.name, -1)}
                     />
                     <Action
                       title="Move Right"
                       icon={Icon.ArrowRight}
-                      shortcut={{ modifiers: ["ctrl"], key: "l" }}
+                      shortcut={{ modifiers: ["ctrl"], key: "arrowRight" }}
                       onAction={() => move(m.name, 1)}
                     />
                     <Action.Push
@@ -338,7 +338,7 @@ export default function Command() {
               title={m.name}
               subtitle={m.description || "disabled"}
               icon={{ source: Icon.EyeDisabled, tintColor: Color.SecondaryText }}
-              detail={<List.Item.Detail markdown={`# ${m.name}\n\nDisabled. Enable to append it at the end of the strip.`} />}
+              detail={<List.Item.Detail markdown={`# ${m.name}\n\nDisabled. Enable to append it at the end of the strip, then reorder with Ctrl+Left / Ctrl+Right.`} />}
               actions={
                 <ActionPanel>
                   <Action
