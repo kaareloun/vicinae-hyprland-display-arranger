@@ -30,8 +30,6 @@ export interface ConfigState {
   luaPath: string;
   confPath: string;
   hyprDir: string;
-  hasLua: boolean;
-  hasConf: boolean;
   isLegacy: boolean;
 }
 
@@ -202,7 +200,7 @@ export async function getConfigState(): Promise<ConfigState> {
   ]);
   const hasLua = luaContent !== null;
   const isLegacy = provider === "hyprlang" || (provider !== "lua" && hasConf && !hasLua);
-  return { provider, luaPath, confPath, hyprDir: dir, hasLua, hasConf, isLegacy };
+  return { provider, luaPath, confPath, hyprDir: dir, isLegacy };
 }
 
 export function scaledWidth(m: HyprMonitor): number {
@@ -254,9 +252,6 @@ export function modeFor(m: HyprMonitor): string {
 }
 
 export function evalForPlacement(m: HyprMonitor, x: number, y: number): string {
-  // NOTE: `disabled = false` must be explicit. Hyprland merges hl.monitor
-  // tables per output, so a stale `disabled = true` survives an eval that
-  // merely omits the field — the monitor would stay black despite "ok".
   return `hl.monitor({ output = ${luaStr(m.name)}, mode = ${luaStr(modeFor(m))}, position = ${luaStr(`${x}x${y}`)}, scale = ${m.scale}, disabled = false })`;
 }
 
@@ -333,11 +328,6 @@ export function planStagedMoves(current: HyprMonitor[], placements: PlacedMonito
 }
 
 export async function applyPlacements(placements: PlacedMonitor[], provider: ConfigProvider): Promise<void> {
-  // NOTE: applied one call at a time, not via `hyprctl --batch`.
-  // A batch of two hl.monitor evals returns ok but silently applies nothing.
-  // Live positions are re-read first so the plan never starts from stale state.
-  // Moves are staged through a free area first so no intermediate state
-  // ever overlaps — otherwise Hyprland warns about a broken layout.
   const live = await getAllMonitors();
   const current = live.filter((m) => !m.disabled);
   for (const s of planStagedMoves(current, placements)) {
@@ -394,9 +384,6 @@ export interface EnsureResult {
   sidecar: string;
   changedConfig: boolean;
   persisted: boolean;
-  imported: number;
-  skipped: string[];
-  migrated: number;
 }
 
 async function verifyLiveSet(expectedEnabled: Set<string>): Promise<void> {
@@ -409,7 +396,7 @@ async function verifyLiveSet(expectedEnabled: Set<string>): Promise<void> {
 }
 
 export async function persistLiveLayout(sidecarFile = SIDECAR_DEFAULT): Promise<EnsureResult> {
-  const empty: EnsureResult = { sidecar: "", changedConfig: false, persisted: false, imported: 0, skipped: [], migrated: 0 };
+  const empty: EnsureResult = { sidecar: "", changedConfig: false, persisted: false };
   const provider = await getProvider();
   if (provider !== "lua") return empty;
   const dir = hyprDir();
@@ -418,10 +405,6 @@ export async function persistLiveLayout(sidecarFile = SIDECAR_DEFAULT): Promise<
     throw new Error("hyprland.lua not found");
   });
   const live = await getAllMonitors();
-  // NOTE: persist the true live state, including a disabled internal panel.
-  // Hyprland auto-reloads this file on every write (inotify), so writing
-  // anything but the truth (e.g. force-enabling eDP-1 here) would instantly
-  // revert the runtime state the user just asked for.
   const enabled = orderLeftToRight(live.filter((m) => !m.disabled));
   const disabled = live.filter((m) => m.disabled);
 
@@ -440,11 +423,6 @@ export async function persistLiveLayout(sidecarFile = SIDECAR_DEFAULT): Promise<
   const liveEntries = [...tileHorizontally(enabled).map(liveEntry), ...disabled.map(disabledEntry)];
   const entries = [...liveEntries];
   const seenOutputs = new Set(entries.map((e) => e.output));
-  // FIX: remember other locations. The sidecar used to be rebuilt from current
-  // live monitors + static hyprland.lua rules only, so persisting at work
-  // dropped the home monitor's rule (and vice versa). Merge previous sidecar
-  // entries for outputs that are absent now; sidecar wins over static because
-  // it holds the freshest live-derived positions.
   const sidecarPrev = await fs.readFile(join(dir, sidecarFile), "utf8").catch(() => null);
   if (sidecarPrev) {
     for (const r of importStaticRules(sidecarPrev).rules) {
@@ -483,18 +461,14 @@ export async function persistLiveLayout(sidecarFile = SIDECAR_DEFAULT): Promise<
         .join("\n");
       await fs.writeFile(luaPath, rolledBack, "utf8");
       if (!sidecarExisted) {
-        try {
-          await fs.unlink(sidecar);
-        } catch {
-          // already gone
-        }
+        await fs.unlink(sidecar).catch(() => undefined);
       }
       throw e;
     }
   } else if (changedConfig) {
     await fs.writeFile(luaPath, luaNext, "utf8");
   }
-  return { sidecar, changedConfig, persisted: true, imported: imported.rules.length, skipped: imported.skipped, migrated };
+  return { sidecar, changedConfig, persisted: true };
 }
 
 export async function removeExtensionConfig(sidecarFile = SIDECAR_DEFAULT): Promise<void> {
@@ -511,18 +485,10 @@ export async function removeExtensionConfig(sidecarFile = SIDECAR_DEFAULT): Prom
   if (kept.length !== current.split("\n").length) {
     await fs.writeFile(luaPath, kept.join("\n"), "utf8");
   }
-  try {
-    await fs.unlink(join(dir, sidecarFile));
-  } catch {
-    // already gone
-  }
+  await fs.unlink(join(dir, sidecarFile)).catch(() => undefined);
   const leftovers = (await fs.readdir(dir)).filter((f) => f.startsWith("hyprland.lua.vicinae-bak-"));
   for (const f of leftovers) {
-    try {
-      await fs.unlink(join(dir, f));
-    } catch {
-      // already gone
-    }
+    await fs.unlink(join(dir, f)).catch(() => undefined);
   }
 }
 

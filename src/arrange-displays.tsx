@@ -101,13 +101,13 @@ export default function Command() {
   const [config, setConfig] = useState<ConfigState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  // NOTE: background poll skips ticks while an action is in flight.
   const busyRef = useRef(false);
-  busyRef.current = busy;
+
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
 
   const load = useCallback(async (announceLegacy: boolean, quiet = false) => {
-    // NOTE: quiet ticks keep stale data on failure instead of flipping the
-    // whole view to the error screen for a transient hyprctl hiccup.
     if (quiet && busyRef.current) return;
     try {
       const [monitors, cfg] = await Promise.all([getAllMonitors(), getConfigState()]);
@@ -136,11 +136,6 @@ export default function Command() {
 
   useEffect(() => {
     void load(true);
-  }, [load]);
-
-  // NOTE: live refresh — closing the lid (or unplugging) moves the monitor
-  // to the Disabled section within ~2s, no manual Reload needed.
-  useEffect(() => {
     const t = setInterval(() => void load(false, true), 2000);
     return () => clearInterval(t);
   }, [load]);
