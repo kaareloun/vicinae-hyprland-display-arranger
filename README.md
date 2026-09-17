@@ -1,14 +1,14 @@
-# Hyprland Monitors
+# Hyprland Display Arranger
 
-Arrange Hyprland monitors from the Vicinae launcher. Reorder, position, enable, and persist external displays without hand-editing your config.
+Arrange Hyprland displays from the Vicinae launcher. Reorder, position, enable, and persist external displays without hand-editing your config.
 
-![Manage Monitors](assets/screenshot.png)
+![Arrange Displays](assets/screenshot.png)
 
 ## Features
 
-- Reorder monitors with `Ctrl+H` / `Ctrl+L`, applied instantly
-- Exact X/Y positioning, per-monitor scale and mode info
-- Enable/disable monitors (never the last active one)
+- Reorder displays with `Ctrl+H` / `Ctrl+L`, applied instantly
+- Exact X/Y positioning, per-display scale and mode info
+- Enable/disable displays (never the last active one)
 - Layouts persist across reboots via an owned sidecar file
 - Stable `desc:` matching — identical panels keep their sides when the kernel renumbers outputs
 
@@ -25,9 +25,9 @@ Arrange Hyprland monitors from the Vicinae launcher. Reorder, position, enable, 
 
 ## Usage
 
-Open Vicinae, run **Manage Monitors**, pick a display.
+Open Vicinae, run **Arrange Displays**, pick a display.
 
-Every change applies instantly and rewrites `monitors-vicinae.lua`, which your `hyprland.lua` loads last via a single `require` line (added automatically on first change). Your existing rules are imported, never edited. **Remove Plugin Config** deletes the sidecar and the require lines.
+Every change applies instantly and rewrites `displays-vicinae.lua`, which your `hyprland.lua` loads last via a single `require` line (added automatically on first change). Your existing rules are imported, never edited. **Remove Extension Config** deletes the sidecar and the require lines.
 
 ## Develop
 

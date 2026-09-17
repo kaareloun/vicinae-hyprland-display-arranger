@@ -10,7 +10,7 @@ import {
   orderLeftToRight,
   parseCoordinate,
   persistLiveLayout,
-  removePluginConfig,
+  removeExtensionConfig,
   scaledWidth,
   setEnabled,
   tileHorizontally,
@@ -75,7 +75,7 @@ function EditPosition({
         </ActionPanel>
       }
     >
-      <Form.Description title="Monitor" text={`${monitor.name} — ${modeFor(monitor)}`} />
+      <Form.Description title="Display" text={`${monitor.name} — ${modeFor(monitor)}`} />
       <Form.TextField
         id="x"
         title="X position"
@@ -194,11 +194,11 @@ export default function Command() {
   }
 
   if (!all || !config) {
-    return <List isLoading searchBarPlaceholder="Reading hyprctl monitors…" />;
+    return <List isLoading searchBarPlaceholder="Reading hyprctl displays…" />;
   }
 
   return (
-    <List isLoading={busy} isShowingDetail searchBarPlaceholder="Monitors">
+    <List isLoading={busy} isShowingDetail searchBarPlaceholder="Displays">
       {config.isLegacy ? (
         <List.Section title="Upgrade notice">
           <List.Item
@@ -283,14 +283,14 @@ export default function Command() {
                       }
                     />
                   </ActionPanel.Section>
-                  <ActionPanel.Section title="Monitor">
+                  <ActionPanel.Section title="Display">
                     <Action
-                      title="Disable Monitor"
+                      title="Disable Display"
                       icon={Icon.EyeDisabled}
                       style="destructive"
                       onAction={() => {
                         if (enabled.length <= 1) {
-                          void showToast({ style: Toast.Style.Failure, title: "Cannot disable the last active monitor" });
+                          void showToast({ style: Toast.Style.Failure, title: "Cannot disable the last active display" });
                           return;
                         }
                         void guarded(async () => {
@@ -303,20 +303,20 @@ export default function Command() {
                     <Action.CopyToClipboard title="Copy Position" content={position} />
                     <Action.ShowInFinder title="Reveal Hypr Config Folder" path={config.hyprDir} />
                     <Action
-                      title="Remove Plugin Config"
+                      title="Remove Extension Config"
                       icon={Icon.Trash}
                       style="destructive"
                       onAction={() => {
                         void (async () => {
                           const ok = await confirmAlert({
-                            title: "Remove plugin config?",
-                            message: `Deletes the ${managedFile()} sidecar, its require lines, and plugin backups. Your static rules take over again on next reload.`,
+                            title: "Remove extension config?",
+                            message: `Deletes the ${managedFile()} sidecar, its require lines, and extension backups. Your static rules take over again on next reload.`,
                             primaryAction: { title: "Remove", style: Alert.ActionStyle.Destructive },
                           });
                           if (!ok) return;
                           await guarded(async () => {
-                            await removePluginConfig(managedFile());
-                            await showToast({ style: Toast.Style.Success, title: "Plugin config removed" });
+                            await removeExtensionConfig(managedFile());
+                            await showToast({ style: Toast.Style.Success, title: "Extension config removed" });
                           });
                         })();
                       }}
@@ -342,7 +342,7 @@ export default function Command() {
               actions={
                 <ActionPanel>
                   <Action
-                    title="Enable Monitor"
+                    title="Enable Display"
                     icon={Icon.Eye}
                     onAction={() =>
                       void guarded(async () => {

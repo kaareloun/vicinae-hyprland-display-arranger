@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
-  "name": "hyprland-monitors",
-  "title": "Hyprland Monitors",
-  "description": "Arrange Hyprland monitors from the launcher. Reorder, position, and toggle displays; layouts persist across reboots.",
+  "name": "hyprland-display-arranger",
+  "title": "Hyprland Display Arranger",
+  "description": "Arrange Hyprland displays from the launcher. Reorder, position, and toggle displays; layouts persist across reboots.",
   "categories": [
     "System"
   ],
@@ -16,10 +16,10 @@
   "icon": "extension_icon.png",
   "commands": [
     {
-      "name": "manage-monitors",
-      "title": "Manage Monitors",
+      "name": "arrange-displays",
+      "title": "Arrange Displays",
       "subtitle": "Hyprland external displays",
-      "description": "Reorder, position, enable, and disable monitors. Changes apply instantly and persist to a managed Lua file.",
+      "description": "Reorder, position, enable, and disable displays. Changes apply instantly and persist to a managed Lua file.",
       "mode": "view"
     }
   ],
@@ -27,10 +27,10 @@
     {
       "name": "managed-file",
       "title": "Managed Lua file",
-      "description": "File the extension writes persistent monitor rules to (inside ~/.config/hypr).",
+      "description": "File the extension writes persistent display rules to (inside ~/.config/hypr).",
       "required": false,
       "type": "textfield",
-      "default": "monitors-vicinae.lua"
+      "default": "displays-vicinae.lua"
     }
   ],
   "scripts": {
