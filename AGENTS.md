@@ -35,6 +35,10 @@ Blocking rules and how this extension stays clear of them:
    a plain `*.lua` basename. Never interpolate dynamic data into shell or Lua without both.
    Numeric fields interpolated raw into Lua (`scale`) go through `scaleFor`, which
    coerces non-finite values to 1 — a hostile `hyprctl` string can't become Lua syntax.
+   Sidecar identity is `desc:`-first (DP-x port names get reused across docks; descs
+   carry serials). No `output = ""` wildcard entry — it fought explicit rules on
+   hotplug. Absent-location `desc:` rules are kept (require sits last, so the sidecar
+   must hold every location); empty-output rules are dropped on carry-over.
 2. `SECURITY-003` (sensitive data) — no credentials, tokens, or camera/mic-style temp files
    in this extension. Don't add any.
 3. `SECURITY-001` (downloaded executables) — never download or bundle binaries.
@@ -42,6 +46,16 @@ Blocking rules and how this extension stays clear of them:
 4. `CORRECTNESS-001` (logic errors) — reviewer only flags high-confidence, observable-wrong
    behavior. Preserve custom Y offsets across move/refresh/persist (`tileHorizontallyKeepY`);
    guard `Math.max` over possibly-empty lists; keep `mergeOrder` stable across polls.
+   Every persist reloads Hyprland and rollbacks sidecar + require lines on failure,
+   so a bad sidecar surfaces immediately instead of at next reboot.
+   Modes are never stored: `maxRefreshMode` recomputes max-resolution-max-refresh
+   from live EDID `availableModes` on every apply/persist (`modeFor` is display-only),
+   and live-apply identifies panels by `desc:` like the sidecar.
+   Persist never writes zero enabled: `splitRescued` rescues the internal panel
+   (`isInternalName`: eDP/LVDS/DSI), else the first monitor; `setEnabled` refuses
+   the last active display. A `desc:`-keyed Lua fallback re-enables the built-in
+   panel when no external is connected, so undocked reboots can't black-screen
+   (lid-close binds stay the session mechanism for docked-off).
 5. `DECEPTION-001` / `MANIFEST-001` — store copy must match behavior. `platforms: ["Linux"]`
    is required (Hyprland-only). Toasts must say "Session only" whenever a change applied
    live on hyprlang without persisting.
@@ -68,7 +82,8 @@ Blocking rules and how this extension stays clear of them:
 5. Pure-logic check: `npx tsx` script asserting `sanitizeSidecarFile` rejects
    `../`, `/`, quotes, missing `.lua`; `liveEntry` output for a hostile
    `desc:` value is single-line with escaped quotes/newlines; `tileHorizontallyKeepY`
-   keeps Y while tiling X; `scaleFor` coerces non-finite scales to 1.
+   keeps Y while tiling X; `scaleFor` coerces non-finite scales to 1; `maxRefreshMode`
+   picks max refresh at max resolution from `availableModes` and falls back to `modeFor`.
 6. In the `vicinaehq/extensions` fork: extension lives at
    `extensions/hyprland-display-arranger/`, PR includes `package-lock.json` and excludes
    `node_modules/`, `dist/`, `vicinae-env.d.ts`. Upstream CI runs

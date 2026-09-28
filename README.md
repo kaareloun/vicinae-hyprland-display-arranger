@@ -1,35 +1,21 @@
 # Hyprland Display Arranger
 
-Arrange Hyprland displays from the Vicinae launcher. Reorder, position, enable, and persist external displays without hand-editing your config.
+Arrange Hyprland displays from the launcher. Reorder, position, and toggle displays — layouts persist across reboots.
 
 ![Arrange Displays](assets/screenshot.png)
 
 ## Features
 
-- Reorder displays with `Ctrl+Left` / `Ctrl+Right`, applied instantly
-- Exact X/Y positioning, per-display scale and mode info
-- Enable/disable displays (never the last active one)
-- Layouts persist across reboots via an owned sidecar file
-- Live refresh — lid close or unplug shows up within ~2 seconds, no manual reload
-- Stable `desc:` matching — identical panels keep their sides when the kernel renumbers outputs
+- Reorder displays with `Ctrl+Left` / `Ctrl+Right`
+- Set exact positions, including negative Y for stacked setups
+- Enable / disable displays with `Ctrl+D`
+- Native resolution at max refresh, re-detected on every change
+- Per-location memory — each setup restores when you plug back in
+- Live list — plug / unplug shows up within ~2 seconds
+- One-click diagnostics copy for bug reports
 
 ## Requirements
 
-- Hyprland 0.55+ with a Lua config (`hyprland.lua`)
-- Vicinae launcher
-- `hyprctl` on `PATH`
+Hyprland 0.55+ with `hyprland.lua`, Vicinae, `hyprctl` on `PATH`.
 
-## Install
-
-1. `npm install`
-2. `npm run build`
-
-## Usage
-
-Open Vicinae, run **Arrange Displays**, pick a display.
-
-Every change applies instantly and rewrites `displays-vicinae.lua`, which your `hyprland.lua` loads last via a single `require` line (added automatically on first change). Your existing rules are imported, never edited. **Remove Extension Config** deletes the sidecar and the require lines.
-
-## Develop
-
-`npm run dev` (Vicinae running, hot-reload on save)
+Install with `npm install` + `npm run build`.
